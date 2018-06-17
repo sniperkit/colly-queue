@@ -1,0 +1,17 @@
+FROM alpine:3.7
+
+# container deps
+RUN apk update \
+	&& apk add --no-cache --no-progress ca-certificates \
+	&& rm -rf /var/cache/apk/* \
+	&& mkdir -p /colly
+
+# container binary
+ADD ./colly-queue.d-linux /colly/queue.d
+
+# container configuration
+WORKDIR /colly
+EXPOSE 8000
+ENTRYPOINT /colly/queue.d
+
+# CMD [""]

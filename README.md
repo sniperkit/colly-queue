@@ -1,1 +1,1 @@
-# colly-queue
+# colly-storage
