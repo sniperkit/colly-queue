@@ -3,48 +3,66 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
-	// external
-	pp "github.com/k0kubun/pp"
+	// colly - core
+	colly "github.com/sniperkit/colly/pkg"
+
+	// colly - internal
+	queue "github.com/sniperkit/colly-queue/pkg"
+
+	// colly - plugin
 	storage "github.com/sniperkit/colly-storage/pkg"
 	store_pivot "github.com/sniperkit/colly-storage/plugin/dal/pivot"
-
-	// internal
-	queue "github.com/sniperkit/colly-storage/queue"
 )
-
-var (
-	storageDebug        bool          = false
-	storagePingDuration time.Duration = 5 * time.Second
-)
-
-var queue *queue.Queue
 
 func main() {
 
 	fmt.Println("Running storage `colly-pivot-sqlite3-queue` example...")
 
-	storageConfig := &store_pivot.Config{
-		Scheme:  "sqlite",                                 // required
-		Host:    "",                                       // required
-		Dataset: "./shared/storage/sqlite/colly-queue.db", // required
-		Options: map[string]interface{}{},                 // optional
-	}
+	url := "https://httpbin.org/delay/1"
 
-	store, err := store_pivot.NewDataAbstractionLayer(storageConfig)
+	// Instantiate default collector
+	c := colly.NewCollector(colly.AllowURLRevisit())
+
+	// create a request queue with 2 consumer threads
+	q, _ := queue.New(
+		2, // Number of consumer threads
+		initStorageByDefault(), // Use default queue storage
+	)
+
+	c.OnRequest(func(r *colly.Request) {
+		fmt.Println("visiting", r.URL)
+		if r.ID < 15 {
+			r2, err := r.New("GET", fmt.Sprintf("%s?x=%v", url, r.ID), nil)
+			if err == nil {
+				q.AddRequest(r2)
+			}
+		}
+	})
+
+	for i := 0; i < 5; i++ {
+		// Add URLs to the queue
+		q.AddURL(fmt.Sprintf("%s?n=%d", url, i))
+	}
+	// Consume URLs
+	q.Run(c)
+
+}
+
+func initStorageByDefault() storage.Storage {
+	store, err := store_pivot.NewDataAbstractionLayer(
+		&store_pivot.Config{
+			Scheme:  "sqlite",                                 // required
+			Host:    "",                                       // required
+			Dataset: "./shared/storage/sqlite/colly-queue.db", // required
+			Options: map[string]interface{}{},                 // optional
+		},
+	)
 	if err != nil {
 		fmt.Println("error while creating a new data abstraction layer instance... error=", err)
 		os.Exit(1)
 	}
-
-	if storageDebug {
-		pp.Println("Storage=", store)
-	} else {
-		store.Action("ping", storagePingDuration)
-		store.Action("list_collections", nil)
-	}
-
+	return store
 }
 
 /*

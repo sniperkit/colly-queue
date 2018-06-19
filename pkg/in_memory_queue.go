@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"errors"
 	"sync"
 )
 
@@ -24,7 +25,7 @@ type Storage interface {
 type InMemoryQueueStorage struct {
 	// MaxSize defines the capacity of the queue.
 	// New requests are discarded if the queue size reaches MaxSize
-	maxSize int
+	MaxSize int
 	lock    *sync.RWMutex
 	size    int
 	first   *inMemoryQueueItem
@@ -42,6 +43,43 @@ func (q *InMemoryQueueStorage) Init() error {
 	return nil
 }
 
+func (q *InMemoryQueueStorage) Get(key string) (resp []byte, ok bool) {
+	return []byte{}, false
+}
+
+func (q *InMemoryQueueStorage) Set(key string, resp []byte) error {
+	return errors.New("Set() method is not implemented yet")
+}
+
+func (q *InMemoryQueueStorage) Delete(key string) error {
+	return errors.New("Delete() method is not implemented yet")
+}
+
+// Debug
+func (q *InMemoryQueueStorage) Debug(action string) error {
+	return errors.New("Debug() method is not implemented yet")
+}
+
+func (q *InMemoryQueueStorage) Action(name string, args ...interface{}) (map[string]interface{}, error) {
+	return nil, errors.New("Action() method is not implemented yet")
+}
+
+// Ping check if the storage is available...
+func (q *InMemoryQueueStorage) Ping() error {
+	return errors.New("Ping() method is not implemented yet")
+}
+
+// Clear truncate all key/values stored...
+func (q *InMemoryQueueStorage) Clear() error {
+	return errors.New("Debug is not implemented yet")
+}
+
+// Close deletes the storage
+func (q *InMemoryQueueStorage) Close() error {
+	return nil
+}
+
+/*
 // AddRequest implements Storage.AddRequest() function
 func (q *InMemoryQueueStorage) AddRequest(r []byte) error {
 	q.lock.Lock()
@@ -80,3 +118,4 @@ func (q *InMemoryQueueStorage) QueueSize() (int, error) {
 	defer q.lock.Unlock()
 	return q.size, nil
 }
+*/

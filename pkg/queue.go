@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	colly "github.com/sniperkit/colly"
 	storage "github.com/sniperkit/colly-storage/pkg"
+	colly "github.com/sniperkit/colly/pkg"
 )
 
 const stop = true
@@ -26,7 +26,7 @@ type Queue struct {
 // A standard InMemoryQueueStorage is used if Storage argument is nil.
 func New(threads int, s storage.Storage) (*Queue, error) {
 	if s == nil {
-		s = &InMemoryQueueStorage{maxSize: 100000}
+		s = &InMemoryQueueStorage{MaxSize: 100000}
 	}
 	if err := s.Init(); err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (q *Queue) AddURL(URL string) error {
 	if err != nil {
 		return err
 	}
-	return q.storage.AddRequest(d)
+	return q.storage.Set(u.String(), d)
 }
 
 // AddRequest adds a new Request to the queue
@@ -68,7 +68,8 @@ func (q *Queue) AddRequest(r *colly.Request) error {
 	if err != nil {
 		return err
 	}
-	if err := q.storage.AddRequest(d); err != nil {
+
+	if err := q.storage.Set(string(d), d); err != nil {
 		return err
 	}
 	q.lock.Lock()
@@ -82,7 +83,8 @@ func (q *Queue) AddRequest(r *colly.Request) error {
 
 // Size returns the size of the queue
 func (q *Queue) Size() (int, error) {
-	return q.storage.QueueSize()
+	res, err := q.storage.Action("size", nil)
+	return res["size"].(int), err
 }
 
 // Run starts consumer threads and calls the Collector
@@ -110,8 +112,8 @@ func (q *Queue) Run(c *colly.Collector) error {
 				q.lock.Lock()
 				atomic.AddInt32(&q.activeThreadCount, 1)
 				q.lock.Unlock()
-				rb, err := q.storage.GetRequest()
-				if err != nil || rb == nil {
+				rb, ok := q.storage.Get("test")
+				if !ok || rb == nil {
 					q.finish()
 					continue
 				}
