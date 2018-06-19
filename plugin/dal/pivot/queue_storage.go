@@ -1,23 +1,25 @@
-package sqlite3
+package pivot_storage
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/url"
 	"strings"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	// internal
+	storage "github.com/sniperkit/colly-storage/pkg"
+	dal_pivot "github.com/sniperkit/colly-storage/plugin/dal/pivot"
 )
 
 // Storage implements a SQLite3 storage backend for Colly
 type Storage struct {
 	// Filename indicates the name of the sqlite file to use
 	Filename string
-	// handle to the db
-	dbh *sql.DB
-	mu  sync.RWMutex // Only used for cookie methods.
+	// handle to the data backend
+	store         storage.Storage
+	storageConfig *dal_pivot.Config
+	mu            sync.RWMutex // Only used for cookie methods.
 }
 
 // Init initializes the sqlite3 storage

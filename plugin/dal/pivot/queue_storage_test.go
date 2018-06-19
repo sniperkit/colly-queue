@@ -1,10 +1,10 @@
-package sqlite3
+package pivot_storage
 
 import (
 	"testing"
 )
 
-func TestSqlite3Storage_Visited(t *testing.T) {
+func TestPivotSqlite3Storage_Visited(t *testing.T) {
 	s := &Storage{
 		Filename: "./visited_test.db",
 	}
@@ -32,7 +32,7 @@ func TestSqlite3Storage_Visited(t *testing.T) {
 
 }
 
-func TestSqlite3Storage_AddRequest(t *testing.T) {
+func TestPivotSqlite3Storage_AddRequest(t *testing.T) {
 	s := &Storage{
 		Filename: "./queue_add_test.db",
 	}
@@ -57,7 +57,7 @@ func TestSqlite3Storage_AddRequest(t *testing.T) {
 
 }
 
-func TestSqlite3Storage_QueueSize(t *testing.T) {
+func TestPivotSqlite3Storage_QueueSize(t *testing.T) {
 	s := &Storage{
 		Filename: "./queue_size_test.db",
 	}
@@ -90,7 +90,7 @@ func TestSqlite3Storage_QueueSize(t *testing.T) {
 	}
 }
 
-func TestSqlite3Storage_GetRequest(t *testing.T) {
+func TestPivotSqlite3Storage_GetRequest(t *testing.T) {
 	count := 0
 
 	s := &Storage{

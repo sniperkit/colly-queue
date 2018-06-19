@@ -5,57 +5,28 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/sniperkit/colly"
+	colly "github.com/sniperkit/colly"
+	storage "github.com/sniperkit/colly-storage/pkg"
 )
 
 const stop = true
-
-// Storage is the interface of the queue's storage backend
-type Storage interface {
-	// Init initializes the storage
-	Init() error
-	// AddRequest adds a serialized request to the queue
-	AddRequest([]byte) error
-	// GetRequest pops the next request from the queue
-	// or returns error if the queue is empty
-	GetRequest() ([]byte, error)
-	// QueueSize returns with the size of the queue
-	QueueSize() (int, error)
-}
 
 // Queue is a request queue which uses a Collector to consume
 // requests in multiple threads
 type Queue struct {
 	// Threads defines the number of consumer threads
 	Threads           int
-	storage           Storage
+	storage           storage.Storage
 	activeThreadCount int32
 	threadChans       []chan bool
 	lock              *sync.Mutex
 }
 
-// InMemoryQueueStorage is the default implementation of the Storage interface.
-// InMemoryQueueStorage holds the request queue in memory.
-type InMemoryQueueStorage struct {
-	// MaxSize defines the capacity of the queue.
-	// New requests are discarded if the queue size reaches MaxSize
-	MaxSize int
-	lock    *sync.RWMutex
-	size    int
-	first   *inMemoryQueueItem
-	last    *inMemoryQueueItem
-}
-
-type inMemoryQueueItem struct {
-	Request []byte
-	Next    *inMemoryQueueItem
-}
-
 // New creates a new queue with a Storage specified in argument
 // A standard InMemoryQueueStorage is used if Storage argument is nil.
-func New(threads int, s Storage) (*Queue, error) {
+func New(threads int, s storage.Storage) (*Queue, error) {
 	if s == nil {
-		s = &InMemoryQueueStorage{MaxSize: 100000}
+		s = &InMemoryQueueStorage{maxSize: 100000}
 	}
 	if err := s.Init(); err != nil {
 		return nil, err
@@ -166,49 +137,4 @@ func (q *Queue) finish() {
 	}
 	q.threadChans = make([]chan bool, 0, q.Threads)
 	q.lock.Unlock()
-}
-
-// Init implements Storage.Init() function
-func (q *InMemoryQueueStorage) Init() error {
-	q.lock = &sync.RWMutex{}
-	return nil
-}
-
-// AddRequest implements Storage.AddRequest() function
-func (q *InMemoryQueueStorage) AddRequest(r []byte) error {
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	// Discard URLs if size limit exceeded
-	if q.MaxSize > 0 && q.size >= q.MaxSize {
-		return nil
-	}
-	i := &inMemoryQueueItem{Request: r}
-	if q.first == nil {
-		q.first = i
-	} else {
-		q.last.Next = i
-	}
-	q.last = i
-	q.size++
-	return nil
-}
-
-// GetRequest implements Storage.GetRequest() function
-func (q *InMemoryQueueStorage) GetRequest() ([]byte, error) {
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	if q.size == 0 {
-		return nil, nil
-	}
-	r := q.first.Request
-	q.first = q.first.Next
-	q.size--
-	return r, nil
-}
-
-// QueueSize implements Storage.QueueSize() function
-func (q *InMemoryQueueStorage) QueueSize() (int, error) {
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	return q.size, nil
 }
